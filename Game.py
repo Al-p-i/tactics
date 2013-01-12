@@ -182,12 +182,15 @@ class MusicPlayer:
         return
 
     def next(self):
-        import random
-        songNumber = random.randint(0, len(self.playlist) - 1)
-        song = pygame.mixer.Sound('./music/' + self.playlist[songNumber])
-        print 'musicalPlayer: ', self.playlist[songNumber]
-        song.play()
-        return
+        if len(self.playlist) != 0:
+            songNumber = random.randint(0, len(self.playlist) - 1)
+            song = pygame.mixer.Sound('./music/' + self.playlist[songNumber])
+            print 'musicalPlayer: ', self.playlist[songNumber]
+            song.play()
+        else:
+            print 'musicalPlayer: playlist is empty'
+            return
+
 
 ### initialization ####################################################
 pygame.init()
