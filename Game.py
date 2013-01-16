@@ -2,13 +2,21 @@ __author__ = 'Alpi'
 
 import pygame, sys, math, random
 from pygame.locals import *
+#from units import *
 
+### CONSTANTS ###################################
 TACT_TIME = 30
 FIRE_ACCURACY = 0.97
 WALK_ACCURACY = 0.7
+RED = pygame.Color(255,0,0)
+GREEN = pygame.Color(0,255,0)
+BLUE = pygame.Color(0,0,255)
+WHITE = pygame.Color(255,255,255)
+################################################
 
 def distance((x1, y1),(x2, y2)):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
 
 class Game:
     def __init__(self, player1, player2):
@@ -31,6 +39,7 @@ class Game:
             bullet.tact()
         return
 
+
 class Player:
     def __init__(self, name, color):
         self.units = []
@@ -39,9 +48,10 @@ class Player:
         self.enemy = None
         return
 
+
 class Unit:
-    def __init__(self, destination, position): return
-    def draw(self): return
+    def __init__(self, player, position): return
+    def draw(self):return
     def findAim(self):
         minDistance = self.scope
         closestUnit = None
@@ -84,8 +94,10 @@ class Unit:
         self.draw()
         return
 
+
 class Marine(Unit):
     def __init__(self, player, position):
+        Unit.__init__(self, player, position)
         self.speed = 3
         self.health = 1
         self.scope = 200
@@ -107,10 +119,13 @@ class Marine(Unit):
 
 class Tank(Unit):
     def __init__(self, player, position):
+        Unit.__init__(self, player, position)
         self.speed = 2
+        self.width = 10
+        self.length = 20
         self.health = 1
         self.scope = 300
-        self.destination = (0,0)
+        self.destination = (0, 0)
         self.recharge = 4000
         self.aim = None
         self.angle = 0.0
@@ -122,8 +137,27 @@ class Tank(Unit):
         return
 
     def draw(self):
-        pygame.draw.rect(windowSurfaceObj, self.player.color, (self.position[0] - 5, self.position[1] - 5, 10, 10), 2)
-        #pygame.draw.circle(windowSurfaceObj, self.player.color, self.position, 5, 2)
+        #pygame.draw.rect(windowSurfaceObj, self.player.color, (self.position[0] - 5, self.position[1] - 5, 10, 10), 2)
+        #up left
+        x1 = self.position[0] + (self.length/2.0) * math.cos(self.angle) - (self.width/2.0) * math.sin(self.angle)
+        y1 = self.position[1] + (self.length/2.0) * math.sin(self.angle) + (self.width/2.0) * math.cos(self.angle)
+        #up right
+        x2 = self.position[0] + (self.length/2.0) * math.cos(self.angle) + (self.width/2.0) * math.sin(self.angle)
+        y2 = self.position[1] + (self.length/2.0) * math.sin(self.angle) - (self.width/2.0) * math.cos(self.angle)
+
+        x3 = self.position[0] - (self.length/2.0) * math.cos(self.angle) + (self.width/2.0) * math.sin(self.angle)
+        y3 = self.position[1] - (self.length/2.0) * math.sin(self.angle) - (self.width/2.0) * math.cos(self.angle)
+
+        x4 = self.position[0] - (self.length/2.0) * math.cos(self.angle) - (self.width/2.0) * math.sin(self.angle)
+        y4 = self.position[1] - (self.length/2.0) * math.sin(self.angle) + (self.width/2.0) * math.cos(self.angle)
+
+        pygame.draw.polygon(windowSurfaceObj, self.player.color, [(x1,y1),(x2,y2),(x3,y3),(x4,y4)], 2)
+
+        pygame.draw.circle(windowSurfaceObj, self.player.color, self.position, 5, 2)
+
+        muzzleX = self.position[0] + (self.length/2.0) * math.cos(self.angle)
+        muzzleY = self.position[1] + (self.length/2.0) * math.sin(self.angle)
+        pygame.draw.line(windowSurfaceObj, self.player.color, (self.position[0], self.position[1]), (muzzleX, muzzleY), 3)
         return
 
 
@@ -172,6 +206,7 @@ class Building(Entity):
         self.poly = None
         return
 
+
 class MusicPlayer:
     playlist = []
     def __init__(self):
@@ -191,72 +226,68 @@ class MusicPlayer:
             print 'musicalPlayer: playlist is empty'
             return
 
-
 ### initialization ####################################################
-pygame.init()
-fpsClock = pygame.time.Clock()
+if __name__ == '__main__':
+    pygame.init()
+    fpsClock = pygame.time.Clock()
 
-windowSurfaceObj = pygame.display.set_mode((800,480))
-pygame.display.set_caption('Battle')
+    windowSurfaceObj = pygame.display.set_mode((800,480))
+    pygame.display.set_caption('Battle')
 
-#pygame.draw.line(windowSurfaceObj,(10,100,100),(10,200),(20,300),2)
-#pygame.display.flip()
+    #pygame.draw.line(windowSurfaceObj,(10,100,100),(10,200),(20,300),2)
+    #pygame.display.flip()
 
-planSurfaceObj = pygame.image.load('plan.jpg')
-plan = planSurfaceObj.convert()
-del planSurfaceObj
-RED = pygame.Color(255,0,0)
-GREEN = pygame.Color(0,255,0)
-BLUE = pygame.Color(0,0,255)
-WHITE = pygame.Color(255,255,255)
-FIRE_SOUND = pygame.mixer.Sound('shot.wav')
-FIRE_SOUND.set_volume(0.2)
+    planSurfaceObj = pygame.image.load('plan.jpg')
+    plan = planSurfaceObj.convert()
+    del planSurfaceObj
+    FIRE_SOUND = pygame.mixer.Sound('shot.wav')
+    FIRE_SOUND.set_volume(0.2)
 
-mousex, mousey = 0, 0
+    mousex, mousey = 0, 0
 
-#fontObj = pygame.font.Font('')
-#soundObj = pygame.mixer.Sound('motherhood.wav')
+    #fontObj = pygame.font.Font('')
+    #soundObj = pygame.mixer.Sound('motherhood.wav')
 
 
-musicalPlayer = MusicPlayer()
+    musicalPlayer = MusicPlayer()
 ####################################################################
 
 
 
-game = Game(Player('Sasha', RED), Player('Roma', BLUE))
-game.player1.enemy = game.player2
-game.player2.enemy = game.player1
-windowSurfaceObj.blit(plan,(0,0))
+    game = Game(Player('Sasha', RED), Player('Roma', BLUE))
+    game.player1.enemy = game.player2
+    game.player2.enemy = game.player1
+    windowSurfaceObj.blit(plan,(0,0))
 
-while True:
-    #windowSurfaceObj.fill(WHITE)
-    windowSurfaceObj.blit(plan,(-55,-10))
-    if not pygame.mixer.get_busy():
-        musicalPlayer.next()
-    #windowSurfaceObj.blit(catSurfaceObj, (mousex, mousey))
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            sys.exit()
-        elif event.type == KEYDOWN:
-            if event.key == K_ESCAPE:
+    while True:
+        #windowSurfaceObj.fill(WHITE)
+        windowSurfaceObj.blit(plan,(-55,-10))
+        if not pygame.mixer.get_busy():
+            musicalPlayer.next()
+        #windowSurfaceObj.blit(catSurfaceObj, (mousex, mousey))
+        for event in pygame.event.get():
+            if event.type == QUIT:
                 sys.exit()
-        elif event.type == MOUSEMOTION:
-            mousex, mousey = event.pos
-        elif event.type == MOUSEBUTTONDOWN:
-            mousex, mousey = event.pos
-            rand = random.random()
-            if rand < 0.25:
-                Marine(game.player1, event.pos)
-            elif rand < 0.5:
-                Marine(game.player2, event.pos)
-            elif rand < 0.75:
-                Tank(game.player1, event.pos)
-            else:
-                Tank(game.player2, event.pos)
+            elif event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    sys.exit()
+            elif event.type == MOUSEMOTION:
+                mousex, mousey = event.pos
+            elif event.type == MOUSEBUTTONDOWN:
+                mousex, mousey = event.pos
+                rand = random.random()
+                if rand < 0.25:
+                    Marine(game.player1, event.pos)
+                elif rand < 0.5:
+                    Marine(game.player2, event.pos)
+                elif rand < 0.75:
+                    Tank(game.player1, event.pos)
+                else:
+                    Tank(game.player2, event.pos)
 
-    game.tact()
-    pygame.display.update()
-    fpsClock.tick(TACT_TIME)
+        game.tact()
+        pygame.display.update()
+        fpsClock.tick(TACT_TIME)
 
 
 
