@@ -1,12 +1,12 @@
 __author__ = 'Alpi'
 
-import pygame, sys, math, random
+import pygame, sys, math, random, copy
 from pygame.locals import *
 #from units import *
 
 ### CONSTANTS ###################################
 TACT_TIME = 30
-FIRE_ACCURACY = 0.97
+FIRE_ACCURACY = 0.95
 WALK_ACCURACY = 0.7
 RED = pygame.Color(255,0,0)
 GREEN = pygame.Color(0,255,0)
@@ -16,6 +16,19 @@ WHITE = pygame.Color(255,255,255)
 
 def distance((x1, y1),(x2, y2)):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
+
+def distancePoint2Line(((lineX1, lineY1),(lineX2, lineY2)), (pointX, pointY)):
+    a = distance((pointX, pointY),(lineX1, lineY1))
+    b = distance((pointX, pointY),(lineX2, lineY2))
+    c = distance((lineX1, lineY1),(lineX2, lineY2))
+    if(a**2 >= b**2 + c**2):
+        return b
+    elif(b**2 >= a**2 + c**2):
+        return a
+    p = (a+b+c)/2
+    s = math.sqrt((p - a)*(p - b)*(p - c)*p)
+    return s*2/c
 
 
 class Game:
@@ -51,7 +64,7 @@ class Player:
 
 class Unit:
     def __init__(self, player, position): return
-    def draw(self):return
+    def draw(self): return
     def findAim(self):
         minDistance = self.scope
         closestUnit = None
@@ -73,7 +86,7 @@ class Unit:
     def fire(self, aim):
         FIRE_SOUND.play()
         randomAngle = self.angle + random.random()*(1 - FIRE_ACCURACY)*2*math.pi - (1 - FIRE_ACCURACY)*math.pi
-        game.bullets.append(Bullet(self.player, self.position, randomAngle))
+        game.bullets.append(Bullet(self.player, self.position, randomAngle, self))
         self._reloadCounter = self.recharge
         return
 
@@ -99,12 +112,17 @@ class Marine(Unit):
     def __init__(self, player, position):
         Unit.__init__(self, player, position)
         self.speed = 3
+        self.length = 10
+        self.size = 3
+        self.maxHealth = 1
         self.health = 1
         self.scope = 200
         self.destination = (0,0)
         self.recharge = 1000
         self.aim = None
         self.angle = 0.0
+        self.angleSpeed = 0.5
+        self.destinationAngle = 0.0
         self._reloadCounter = 0.0
         self.player = player
         self.position = position
@@ -113,7 +131,10 @@ class Marine(Unit):
         return
 
     def draw(self):
-        pygame.draw.circle(windowSurfaceObj, self.player.color, self.position, 4, 2)
+        pygame.draw.circle(windowSurfaceObj, self.player.color, self.position, self.size, 2)
+        muzzleX = self.position[0] + (self.length/2.0) * math.cos(self.angle)
+        muzzleY = self.position[1] + (self.length/2.0) * math.sin(self.angle)
+        pygame.draw.line(windowSurfaceObj, self.player.color, (self.position[0], self.position[1]), (muzzleX, muzzleY), 2)
         return
 
 
@@ -122,13 +143,17 @@ class Tank(Unit):
         Unit.__init__(self, player, position)
         self.speed = 2
         self.width = 10
-        self.length = 20
-        self.health = 1
+        self.length = 15
+        self.size = 10
+        self.maxHealth = 5
+        self.health = 5
         self.scope = 300
         self.destination = (0, 0)
         self.recharge = 4000
         self.aim = None
         self.angle = 0.0
+        self.angleSpeed = 0.5
+        self.destinationAngle = 0.0
         self._reloadCounter = 0.0
         self.player = player
         self.position = position
@@ -162,8 +187,9 @@ class Tank(Unit):
 
 
 class Bullet():
-    def __init__(self, player, position, angle):
-        #prevposition = (0,0)
+    def __init__(self, player, position, angle, ownerUnit):
+        self.ownerUnit = ownerUnit
+        self.prevposition = (0,0)
         self.position = (0,0)
         self.speed = 15
         self.player = player
@@ -173,17 +199,26 @@ class Bullet():
         self.scope = 300
         return
     def move(self):
+        self.prevposition = copy.copy(self.position)
         dx = math.cos(self.angle) * self.speed
         dy = math.sin(self.angle) * self.speed
         self.position = (int(self.position[0] + dx), int(self.position[1] + dy))
         for unit in game.player1.units:
-            if distance(self.position, unit.position) < 5:
-                game.player1.units.remove(unit)
-                #game.bullets.remove(self)
+            #if distance(self.position, unit.position) < 5:
+            if unit != self.ownerUnit and distancePoint2Line((self.position, self.prevposition),unit.position) < unit.size:
+                unit.health -= 1
+                if(unit.health <= 0):
+                    game.player1.units.remove(unit)
+                game.bullets.remove(self)
+                return
         for unit in game.player2.units:
-            if distance(self.position, unit.position) < 5:
-                game.player2.units.remove(unit)
-                #game.bullets.remove(self)
+            #if distance(self.position, unit.position) < 5:
+            if unit != self.ownerUnit and distancePoint2Line((self.position, self.prevposition),unit.position) < unit.size:
+                unit.health -= 1
+                if(unit.health <= 0):
+                    game.player2.units.remove(unit)
+                game.bullets.remove(self)
+                return
 
         self._distanceCovered += self.speed
         if self._distanceCovered >= self.scope:
@@ -191,6 +226,7 @@ class Bullet():
         return
     def draw(self):
         pygame.draw.circle(windowSurfaceObj, self.player.color, self.position, 2, 0)
+        #pygame.draw.line(windowSurfaceObj, self.player.color, self.position, self.prevposition, 2)
         return
     def tact(self):
         self.move()
